@@ -1,5 +1,23 @@
 import { Request, Response } from 'express';
 import Book from '../models/book';
+import { paginate } from '../utils/pagination';
+
+export const list = async (req: Request, res: Response) => {
+  try {
+    const { page, search } = req.query;
+    const { offset, limit } = paginate(page as string);
+
+    const books = await Book.findAndCountAll({
+      where: { title: search },
+      offset,
+      limit,
+    });
+
+    return res.status(200).send(books);
+  } catch (error) {
+    return res.status(500).send({ error });
+  }
+};
 
 export const get = async (req: Request, res: Response) => {
   try {
