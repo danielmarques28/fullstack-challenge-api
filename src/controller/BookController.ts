@@ -1,7 +1,7 @@
 import { Request, Response } from 'express';
-import Book from '../models/book';
+import { getRepository } from 'typeorm';
+import { Book } from '../entity/Book';
 import { paginate } from '../utils/pagination';
-import sequelize from 'sequelize';
 
 export const list = async (req: Request, res: Response) => {
   try {
@@ -9,28 +9,17 @@ export const list = async (req: Request, res: Response) => {
 
     const { offset, limit } = paginate(page as string);
 
+    const bookRepo = getRepository(Book);
+
     if (!req.query.search) {
-      const books = await Book.findAndCountAll({
-        offset,
-        limit,
-      });
+      const books = await bookRepo.findAndCount();
 
       return res.status(200).send(books);
     }
 
     const search = String(req.query.search).toLowerCase();
 
-    const books = await Book.findAndCountAll({
-      where: {
-        title: sequelize.where(
-          sequelize.fn('LOWER', sequelize.col('title')),
-          'LIKE',
-          `%${search}%`
-        ),
-      },
-      offset,
-      limit,
-    });
+    const books = await bookRepo.findAndCount();
 
     return res.status(200).send(books);
   } catch (error) {
@@ -40,7 +29,8 @@ export const list = async (req: Request, res: Response) => {
 
 export const get = async (req: Request, res: Response) => {
   try {
-    const book = await Book.findByPk(req.params.id);
+    const bookRepo = getRepository(Book);
+    const book = await bookRepo.findOne(req.params.id);
 
     if (!book) return res.status(404).send({ msg: 'Not found' });
 
@@ -52,9 +42,10 @@ export const get = async (req: Request, res: Response) => {
 
 export const create = async (req: Request, res: Response) => {
   try {
-    const { title, description } = req.body;
+    const { name, description } = req.body;
 
-    const book = await Book.create({ title, description });
+    const bookRepo = getRepository(Book);
+    const book = await bookRepo.save({ name, description });
 
     return res.status(201).send(book);
   } catch (error) {
