@@ -14,3 +14,14 @@ export const create = async (req: Request, res: Response) => {
     return res.status(400).send({ error });
   }
 };
+
+export const list = async (_req: Request, res: Response) => {
+  try {
+    const authorRepo = getRepository(Author);
+    const authors = await authorRepo.find();
+
+    return res.status(200).send(authors);
+  } catch (error) {
+    return res.status(400).send({ error });
+  }
+};
