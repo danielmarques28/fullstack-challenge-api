@@ -1,5 +1,6 @@
 import { Request, Response } from 'express';
 import { FindManyOptions, getRepository, Like } from 'typeorm';
+import { Author } from '../entity/Author';
 import { Book } from '../entity/Book';
 import { paginate } from '../utils/pagination';
 
@@ -7,7 +8,10 @@ export const list = async (req: Request, res: Response) => {
   try {
     const { page, limit: total, search } = req.query;
 
-    const { offset, limit } = paginate(Number(page), Number(total));
+    const { offset, limit } = paginate(
+      Number(page),
+      total ? Number(total) : 9
+    );
 
     const bookRepo = getRepository(Book);
 
@@ -19,6 +23,7 @@ export const list = async (req: Request, res: Response) => {
         : undefined,
       take: limit,
       skip: offset,
+      relations: ['author'],
     } as FindManyOptions<Book>;
 
     const books = await bookRepo.findAndCount(options);
@@ -32,7 +37,9 @@ export const list = async (req: Request, res: Response) => {
 export const get = async (req: Request, res: Response) => {
   try {
     const bookRepo = getRepository(Book);
-    const book = await bookRepo.findOne(req.params.id);
+    const book = await bookRepo.findOne(req.params.id, {
+      relations: ['author'],
+    });
 
     if (!book) return res.status(404).send({ msg: 'Not found' });
 
@@ -44,10 +51,15 @@ export const get = async (req: Request, res: Response) => {
 
 export const create = async (req: Request, res: Response) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, authorId } = req.body;
+
+    const authorRepo = getRepository(Author);
+    const author = await authorRepo.findOne(authorId);
+
+    if (!author) throw new Error('Author not found');
 
     const bookRepo = getRepository(Book);
-    const book = await bookRepo.save({ name, description });
+    const book = bookRepo.save({ name, description, author } as Book);
 
     return res.status(201).send(book);
   } catch (error) {
