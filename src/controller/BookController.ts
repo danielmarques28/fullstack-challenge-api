@@ -1,25 +1,27 @@
 import { Request, Response } from 'express';
-import { getRepository } from 'typeorm';
+import { FindManyOptions, getRepository, Like } from 'typeorm';
 import { Book } from '../entity/Book';
 import { paginate } from '../utils/pagination';
 
 export const list = async (req: Request, res: Response) => {
   try {
-    const { page } = req.query;
+    const { page, limit: total, search } = req.query;
 
-    const { offset, limit } = paginate(page as string);
+    const { offset, limit } = paginate(Number(page), Number(total));
 
     const bookRepo = getRepository(Book);
 
-    if (!req.query.search) {
-      const books = await bookRepo.findAndCount();
+    const options = {
+      where: search
+        ? {
+            name: Like(`%${String(search).toLowerCase()}%`),
+          }
+        : undefined,
+      take: limit,
+      skip: offset,
+    } as FindManyOptions<Book>;
 
-      return res.status(200).send(books);
-    }
-
-    const search = String(req.query.search).toLowerCase();
-
-    const books = await bookRepo.findAndCount();
+    const books = await bookRepo.findAndCount(options);
 
     return res.status(200).send(books);
   } catch (error) {
