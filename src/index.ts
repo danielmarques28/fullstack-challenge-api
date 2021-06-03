@@ -1,16 +1,24 @@
+import 'reflect-metadata';
 import express, { Application } from 'express';
-import routes from './routes';
+import { createConnection } from 'typeorm';
+import routes from './router';
 import cors from 'cors';
 
-const app: Application = express();
-const port = 3000;
+createConnection()
+  .then(() => {
+    const app: Application = express();
+    const port = 3000;
 
-app.use(cors());
+    app.use(cors());
 
-app.use(express.json());
+    app.use(express.json());
 
-// Application routing
-app.use('/api/', routes);
+    // Application routing
+    app.use('/api/', routes);
 
-// Start server
-app.listen(port, () => console.log('Example app listening at http://localhost:3000'));
+    // Start server
+    app.listen(port, () =>
+      console.log('Example app listening at http://localhost:3000')
+    );
+  })
+  .catch((error) => console.log(error));
