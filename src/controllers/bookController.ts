@@ -1,14 +1,33 @@
 import { Request, Response } from 'express';
 import Book from '../models/book';
 import { paginate } from '../utils/pagination';
+import sequelize from 'sequelize';
 
 export const list = async (req: Request, res: Response) => {
   try {
-    const { page, search } = req.query;
+    const { page } = req.query;
+
     const { offset, limit } = paginate(page as string);
 
+    if (!req.query.search) {
+      const books = await Book.findAndCountAll({
+        offset,
+        limit,
+      });
+
+      return res.status(200).send(books);
+    }
+
+    const search = String(req.query.search).toLowerCase();
+
     const books = await Book.findAndCountAll({
-      where: { title: search },
+      where: {
+        title: sequelize.where(
+          sequelize.fn('LOWER', sequelize.col('title')),
+          'LIKE',
+          `%${search}%`
+        ),
+      },
       offset,
       limit,
     });
